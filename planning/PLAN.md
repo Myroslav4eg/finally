@@ -248,34 +248,50 @@ All tables include a `user_id` column defaulting to `"default"`. This is hardcod
 
 ## 8. API Endpoints
 
+`backend/app/schemas.py` and `backend/app/llm/schemas.py` are the authoritative
+definitions. The shapes below are recorded here so the frontend and the test
+suite have one place to check; if they ever disagree with the Pydantic models,
+the models win and this section is the thing to correct.
+
+Every business failure returns `400 {"detail": "..."}`. A request under `/api/`
+that matches no route returns a JSON `404` rather than falling through to the
+static frontend.
+
 ### Market Data
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/stream/prices` | SSE stream of live price updates |
 
 ### Portfolio
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/portfolio` | Current positions, cash balance, total value, unrealized P&L |
-| POST | `/api/portfolio/trade` | Execute a trade: `{ticker, quantity, side}` |
-| GET | `/api/portfolio/history` | Portfolio value snapshots over time (for P&L chart) |
+| Method | Path | Request | Response |
+|--------|------|---------|----------|
+| GET | `/api/portfolio` | — | `Portfolio` |
+| POST | `/api/portfolio/trade` | `{ticker, quantity, side}` | `TradeExecution` |
+| GET | `/api/portfolio/history` | `?limit=` (1-5000, optional) | `{snapshots: [{total_value, recorded_at}]}`, oldest first |
+
+- **`Portfolio`** — `{cash_balance, positions, positions_value, total_value, unrealized_pnl, unrealized_pnl_percent}`. Each position carries `{ticker, quantity, avg_cost, cost_basis, current_price, market_value, unrealized_pnl, unrealized_pnl_percent, weight}`. A position whose ticker has no cached price is valued at `avg_cost` and reports `current_price: null`.
+- **`TradeExecution`** — `{trade, position, cash_balance, total_value}`, so a client can settle the whole UI from one reply without re-fetching. `position` is `null` when a sell closes the holding.
 
 ### Watchlist
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/watchlist` | Current watchlist tickers with latest prices |
-| POST | `/api/watchlist` | Add a ticker: `{ticker}` |
-| DELETE | `/api/watchlist/{ticker}` | Remove a ticker |
+| Method | Path | Request | Response |
+|--------|------|---------|----------|
+| GET | `/api/watchlist` | — | `200` `{items: [WatchlistItem]}` |
+| POST | `/api/watchlist` | `{ticker}` | `201` `WatchlistItem` (the added row) |
+| DELETE | `/api/watchlist/{ticker}` | — | `204` no body |
+
+`WatchlistItem` is `{ticker, added_at, price, previous_price, change, change_percent, direction}`; every price field is nullable until the first tick arrives. Only the collection read is wrapped in `items` — the mutations return the single row or nothing.
 
 ### Chat
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/chat` | Send a message, receive complete JSON response (message + executed actions) |
+| Method | Path | Request | Response |
+|--------|------|---------|----------|
+| POST | `/api/chat` | `{message}` | `{message, actions, created_at}` |
+
+`actions` is `{trades: [TradeOutcome], watchlist_changes: [WatchlistOutcome]}` — what was *attempted*, not what the model proposed. Each outcome carries `status: "executed" | "failed"` plus an `error` string when it failed. This is deliberately not the model's own schema from section 9: a rejected trade is still a successful turn, so it returns `200` with `status: "failed"`, and only a model or provider failure returns `502`.
 
 ### System
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/health` | Health check (for Docker/deployment) |
+| GET | `/api/health` | `{status, market_source, tracked_tickers}` |
 
 ---
 
@@ -317,6 +333,10 @@ The LLM is instructed to respond with JSON matching this schema:
 - `message` (required): The conversational text shown to the user
 - `trades` (optional): Array of trades to auto-execute. Each trade goes through the same validation as manual trades (sufficient cash for buys, sufficient shares for sells)
 - `watchlist_changes` (optional): Array of watchlist modifications
+
+This is what the *model* produces. It is not what `/api/chat` returns: the
+endpoint runs each proposed action through the service layer and replies with
+the outcomes, including the ones that were rejected. See section 8.
 
 ### Auto-Execution
 

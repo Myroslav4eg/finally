@@ -26,8 +26,9 @@ logger = logging.getLogger(__name__)
 STATIC_DIR_ENV = "FINALLY_STATIC_DIR"
 API_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"]
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(PROJECT_ROOT / ".env")
+# Searches upward from this file for .env. Found in the repo layout; absent in
+# the container, where the runtime injects environment variables directly.
+load_dotenv()
 
 
 def static_dir() -> Path:
