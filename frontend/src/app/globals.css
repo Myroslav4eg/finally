@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+/*
+ * FinAlly design tokens.
+ *
+ * The surface ramp is a blue-black, never pure black. Data colors were checked
+ * with the dataviz palette validator against the panel surface (#11161d, dark
+ * mode): up/down clear the lightness band, the chroma floor, CVD separation
+ * (deltaE 7.9 under protanopia/deuteranopia) and 3:1 contrast. That CVD score
+ * sits in the floor band, so every use of up/down also carries a direction
+ * glyph or a signed number - color is never the only channel.
+ */
+@theme {
+  --color-bg: #0d1117;
+  --color-panel: #11161d;
+  --color-panel-hi: #171e27;
+  --color-line: #232b36;
+  --color-line-hi: #303a48;
+
+  --color-ink: #e6edf3;
+  --color-ink-2: #96a3b1;
+  --color-ink-3: #5f6b7a;
+
+  --color-up: #0f9f79;
+  --color-down: #ef5a66;
+  --color-flat: #6b7684;
+
+  --color-blue: #209dd7;
+  --color-yellow: #ecad0a;
+  --color-purple: #753991;
+
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-cond: var(--font-plex-cond), var(--font-plex-mono), system-ui, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Panel titles and column headers: the channel-label voice of a terminal. */
+.eyebrow {
+  font-family: var(--font-cond);
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+
+/* Price flash: the tint lands on the tick and fades out across ~500ms. */
+@keyframes flash-up {
+  from {
+    background-color: color-mix(in srgb, var(--color-up) 34%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+@keyframes flash-down {
+  from {
+    background-color: color-mix(in srgb, var(--color-down) 34%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.flash-up {
+  animation: flash-up 500ms ease-out;
+}
+.flash-down {
+  animation: flash-down 500ms ease-out;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-yellow);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
