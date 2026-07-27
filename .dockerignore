@@ -1,0 +1,38 @@
+# Version control and tooling
+.git
+.github
+.claude
+.gitignore
+.dockerignore
+
+# Secrets and local runtime state
+.env
+db/*.db
+db/*.db-wal
+db/*.db-shm
+
+# Docs and non-application directories
+planning
+test
+scripts
+LICENSE
+Dockerfile
+docker-compose.yml
+**/*.md
+!backend/README.md
+
+# Frontend build artifacts and dependencies (rebuilt in the image)
+frontend/node_modules
+frontend/.next
+frontend/out
+frontend/tsconfig.tsbuildinfo
+
+# Backend local artifacts and tests
+backend/.venv
+backend/tests
+backend/market_data_demo.py
+backend/.coverage
+backend/.pytest_cache
+backend/.ruff_cache
+**/__pycache__
+**/*.pyc
