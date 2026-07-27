@@ -1,0 +1,65 @@
+# E2E and integration test stack.
+#
+# Two app containers from the production image, each with its own tmpfs
+# database, so the browser suite and the API suite never share state and every
+# run starts from a freshly seeded database. Browser dependencies live only in
+# the runner image, never in the production image.
+#
+#   docker compose -f test/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from runner
+#   docker compose -f test/docker-compose.test.yml down -v --remove-orphans
+
+name: finally-test
+
+x-app: &app
+  build:
+    context: ..
+    dockerfile: Dockerfile
+  image: finally:test
+  environment:
+    LLM_MOCK: "true"
+    MASSIVE_API_KEY: ""
+    OPENROUTER_API_KEY: ""
+    FINALLY_DB_PATH: /app/db/finally.db
+    FINALLY_STATIC_DIR: /app/static
+  # tmpfs, not a named volume: the database is discarded when the container
+  # stops, so no run can inherit the previous run's cash, positions or watchlist.
+  tmpfs:
+    - /app/db
+  healthcheck:
+    test:
+      - CMD
+      - python
+      - -c
+      - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health').read()"
+    interval: 2s
+    timeout: 4s
+    retries: 30
+    start_period: 3s
+
+services:
+  app-e2e:
+    <<: *app
+    container_name: finally-test-app-e2e
+
+  app-api:
+    <<: *app
+    container_name: finally-test-app-api
+
+  runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: finally-test-runner
+    container_name: finally-test-runner
+    depends_on:
+      app-e2e:
+        condition: service_healthy
+      app-api:
+        condition: service_healthy
+    environment:
+      E2E_BASE_URL: http://app-e2e:8000
+      API_BASE_URL: http://app-api:8000
+      CI: "1"
+    # Chromium needs more than the default 64MB of shared memory.
+    shm_size: "1gb"
+    command: ["npx", "playwright", "test"]

@@ -1,0 +1,17 @@
+{
+  "name": "finally-test",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Integration and E2E tests for FinAlly",
+  "scripts": {
+    "test": "playwright test",
+    "test:e2e": "playwright test --project=e2e",
+    "test:api": "playwright test --project=api",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "@types/node": "26.1.1",
+    "typescript": "^5.9.3"
+  }
+}
