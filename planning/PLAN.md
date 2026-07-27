@@ -164,6 +164,12 @@ Both the simulator and the Massive client implement the same abstract interface.
 - Paid tiers: poll every 2-15 seconds depending on tier
 - Parses REST response into the same format as the simulator
 
+Consequences to document for users, because the app looks broken when it is not:
+the free tier serves quotes delayed by 15 minutes rather than in real time, and
+outside market hours nothing updates at all. Compared to the simulator's 500ms
+cadence the UI flashes rarely and sparklines fill slowly, and a newly watched
+ticker stays unpriced until the next poll.
+
 ### Shared Price Cache
 
 - A single background task (simulator or Massive poller) writes to an in-memory price cache
